@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="tt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Фикһ фәне буенча 50 дәреслек интерактив тестлар">
+  <meta name="theme-color" content="#12372a">
+  <title>Фикһ тестлары</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2312372a'/%3E%3Cpath d='M32 13a19 19 0 1 0 19 19A16 16 0 1 1 32 13Z' fill='%23f2c66d'/%3E%3Cpath d='m45 18 1.8 4.2 4.5.4-3.4 3 1 4.4-3.9-2.3-3.9 2.3 1-4.4-3.4-3 4.5-.4Z' fill='%23f2c66d'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <button class="brand" id="homeButton" type="button" aria-label="Баш биткә кайту">
+        <span class="brand-mark" aria-hidden="true">☾</span>
+        <span>Фикһ тестлары</span>
+      </button>
+      <div class="best-score" id="bestScore" aria-live="polite"></div>
+    </header>
+
+    <main id="app" tabindex="-1"></main>
+
+    <footer>
+      Хәнәфи мәзһәбе нигезендәге уку материаллары буенча
+    </footer>
+  </div>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
