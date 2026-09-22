@@ -2,6 +2,7 @@
   "use strict";
 
   const data = window.FIQH_QUIZ_DATA;
+  const course = window.FIQH_COURSE || { modules: [], lessonPages: {} };
   const app = document.getElementById("app");
   const homeButton = document.getElementById("homeButton");
   const bestScore = document.getElementById("bestScore");
@@ -20,6 +21,25 @@
   function getBest() {
     try { return JSON.parse(localStorage.getItem("fiqh-best") || "null"); }
     catch (_) { return null; }
+  }
+
+  function getCompleted() {
+    try { return JSON.parse(localStorage.getItem("fiqh-completed") || "{}"); }
+    catch (_) { return {}; }
+  }
+
+  function markCompleted(lessonId, percent) {
+    const completed = getCompleted();
+    completed[lessonId] = Math.max(Number(completed[lessonId]) || 0, percent);
+    localStorage.setItem("fiqh-completed", JSON.stringify(completed));
+  }
+
+  function getModuleForLesson(lessonId) {
+    return course.modules.find((module) => module.lessonIds.includes(lessonId));
+  }
+
+  function bookPages(lessonId) {
+    return course.lessonPages[lessonId] || "";
   }
 
   function setBest(score, total) {
@@ -51,9 +71,23 @@
     const url = new URL(window.location.href);
     url.search = "";
     url.hash = "";
-    url.searchParams.set("lesson", lessonId);
+    if (lessonId) url.searchParams.set("lesson", lessonId);
     if (group) url.searchParams.set("group", group);
     return url.toString();
+  }
+
+  function renderLessonCards(module, completed) {
+    return module.lessonIds.map((lessonId) => {
+      const lesson = data.lessons.find((item) => item.id === lessonId);
+      const score = completed[lessonId];
+      const stateClass = score >= 70 ? " completed" : (score !== undefined ? " attempted" : "");
+      const stateLabel = score !== undefined ? `<span class="lesson-score">${score}%</span>` : `<span class="lesson-arrow" aria-hidden="true">→</span>`;
+      return `<a class="course-lesson${stateClass}" href="${escapeHtml(lessonUrl(lessonId))}">
+        <span class="lesson-index">${lessonId}</span>
+        <span class="lesson-name">${escapeHtml(lesson.title)}<small>Китап: ${escapeHtml(bookPages(lessonId))} нче бит</small></span>
+        ${stateLabel}
+      </a>`;
+    }).join("");
   }
 
   async function copyLessonLink(lessonId) {
@@ -78,25 +112,51 @@
 
   function renderLockedHome() {
     const lesson = lockedLesson;
+    const module = getModuleForLesson(lesson.id);
+    const pages = bookPages(lesson.id);
+    const pageWord = /[-,]/.test(pages) ? "битләрен" : "битен";
+    const isAssessment = lesson.id === 25 || lesson.id === 49 || lesson.id === 50;
+    const readingTask = isAssessment
+      ? "Үткән бүлекләрнең схемаларын һәм үзегезнең язмаларыгызны кабатлагыз. Җавапны яттан түгел, кагыйдәнең мәгънәсен аңлап сайлагыз."
+      : `Китапның ${pages} нче ${pageWord} карагыз. Өч төп фикерне дәфтәргә үз сүзләрегез белән языгыз.`;
+    const practice = module ? module.practice : "Теманы үз сүзләрегез белән аңлатып карагыз.";
     app.innerHTML = `
-      <section class="intro-grid lesson-landing">
-        <div class="intro-copy">
+      <section class="lesson-workspace">
+        <div class="lesson-study">
+          <nav class="lesson-breadcrumb" aria-label="Курс юлы">
+            <a href="${escapeHtml(lessonUrl(0))}">Курс</a><span>•</span><span>${module ? escapeHtml(module.title) : "Йомгаклау"}</span>
+          </nav>
           <p class="eyebrow">${lesson.id} нче дәрес</p>
           <h1>${escapeHtml(lesson.title)}</h1>
-          <p class="lead">Һәр сорауда бер генә дөрес җавап бар. Нәтиҗә тест тәмамлангач күрсәтелә.</p>
-          <div class="stats" aria-label="Тест турында мәгълүмат">
-            <div class="stat"><strong>${lesson.questions.length}</strong><span>сорау</span></div>
-            <div class="stat"><strong>1</strong><span>тест</span></div>
+          <p class="lead">Бу дәрестән соң сез теманың төп кагыйдәләрен үз сүзләрегез белән аңлата һәм аларны мисалларда таный аласыз.</p>
+          <div class="study-steps">
+            <article class="study-step">
+              <span>1</span>
+              <div><h2>Максатны аңла</h2><p>${escapeHtml(lesson.title)} темасының кайда һәм ни өчен кулланылуын билгелә.</p></div>
+            </article>
+            <article class="study-step book-step">
+              <span>2</span>
+              <div><h2>Китап белән эшлә</h2><p>${escapeHtml(readingTask)}</p><strong>«${escapeHtml(course.bookTitle || "Фикһ әлифбасы")}» • ${escapeHtml(pages)} нче бит</strong></div>
+            </article>
+            <article class="study-step">
+              <span>3</span>
+              <div><h2>Гамәлдә куллан</h2><p>${escapeHtml(practice)}</p></div>
+            </article>
+            <article class="study-step">
+              <span>4</span>
+              <div><h2>Белемеңне тикшер</h2><p>${lesson.questions.length} сорауга җавап бир. Ахырда хаталар өстендә эш бүлеге ачыла.</p></div>
+            </article>
           </div>
         </div>
         <div class="panel lesson-panel">
-          <p class="eyebrow">Сезнең тест</p>
-          <h2>${escapeHtml(lessonLabel(lesson))}</h2>
-          <p class="panel-note">Җавапларны сайлап, тестны ахырга кадәр үтегез.</p>
+          <p class="eyebrow">Дәрес тесты</p>
+          <h2>${lesson.questions.length} сорау</h2>
+          <p class="panel-note">Китап белән эшләгәннән соң, исемегезне язып тестны башлагыз.</p>
           <form id="studentForm">
             <label for="studentName">Исем һәм фамилия</label>
             <input id="studentName" name="studentName" maxlength="80" autocomplete="name" required>
             ${assignedGroup ? `<p class="assigned-group"><span>Төркем</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : `<label for="studentGroup">Төркем</label><input id="studentGroup" name="studentGroup" maxlength="60" required>`}
+            <label class="book-check"><input id="bookReady" type="checkbox" required><span>Китаптагы күрсәтелгән битләр белән эшләдем</span></label>
             <p class="privacy-note">Нәтиҗә, исем һәм төркем укытучы журналына җибәрелә.</p>
             <button class="primary" id="startButton" type="submit">Тестны башларга</button>
           </form>
@@ -122,30 +182,58 @@
     const lessons = data.lessons.map((lesson) => {
       return `<option value="${lesson.id}">${escapeHtml(lessonLabel(lesson))}</option>`;
     }).join("");
+    const completed = getCompleted();
+    const completedCount = Object.keys(completed).filter((lessonId) => completed[lessonId] >= 70 && data.lessons.some((lesson) => lesson.id === Number(lessonId))).length;
+    const progress = Math.round((completedCount / data.lessons.length) * 100);
+    const nextLesson = data.lessons.find((lesson) => completed[lesson.id] < 70 || completed[lesson.id] === undefined) || data.lessons[0];
+    const modules = course.modules.map((module, index) => {
+      const done = module.lessonIds.filter((lessonId) => completed[lessonId] >= 70).length;
+      return `<details class="course-module" ${index === 0 ? "open" : ""}>
+        <summary>
+          <span class="module-number">${module.number}</span>
+          <span class="module-copy"><strong>${escapeHtml(module.title)}</strong><small>${escapeHtml(module.description)}</small></span>
+          <span class="module-meta">${done}/${module.lessonIds.length}<small>${escapeHtml(module.bookPages)} нче бит</small></span>
+        </summary>
+        <div class="module-lessons">${renderLessonCards(module, completed)}</div>
+      </details>`;
+    }).join("");
 
     app.innerHTML = `
-      <section class="intro-grid">
-        <div class="intro-copy">
-          <p class="eyebrow">Ике еллык уку программасы</p>
-          <h1>Белемеңне тикшер</h1>
-          <p class="lead">Дәресне сайла, сорауларга җавап бир һәм нәтиҗәне шунда ук бел. Һәр сорауда бер генә дөрес җавап бар.</p>
-          <div class="stats" aria-label="Тест турында мәгълүмат">
-            <div class="stat"><strong>50</strong><span>дәрес</span></div>
-            <div class="stat"><strong>560</strong><span>сорау</span></div>
-            <div class="stat"><strong>2 ел</strong><span>уку программасы</span></div>
+      <section class="course-home">
+        <div class="course-intro">
+          <div>
+            <p class="eyebrow">Китап + онлайн практика</p>
+            <h1>Фикһ нигезләрен адымлап өйрән</h1>
+            <p class="lead">Һәр дәрестә китапның төгәл битләре, гамәли бирем һәм белемне тикшерү тесты бар. Онлайн курс китапны алыштырмый — аны аңлап укырга ярдәм итә.</p>
           </div>
+          <aside class="progress-card">
+            <span class="progress-label">Сезнең алга китеш</span>
+            <strong>${completedCount} / ${data.lessons.length}</strong>
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><div class="progress-bar" style="width:${progress}%"></div></div>
+            <p>${progress}% тәмамланган</p>
+            <a class="primary button-link" href="${escapeHtml(lessonUrl(nextLesson.id))}">${completedCount ? "Дәвам итәргә" : "Беренче дәресне ачарга"}</a>
+          </aside>
         </div>
-        <div class="panel">
-          <h2>Тестны башлау</h2>
-          <p class="panel-note">Үтәргә теләгән дәресне сайлагыз.</p>
-          <label for="lessonSelect">Дәрес</label>
-          <select id="lessonSelect">${lessons}</select>
-          <p class="lesson-meta" id="lessonMeta"></p>
-          <button class="primary" id="startButton" type="button">Башларга</button>
-          <label class="share-group-label" for="shareGroup">Төркем (сылтамага өстәлә)</label>
-          <input id="shareGroup" maxlength="60" placeholder="Мәсәлән, 2 нче төркем">
-          <button class="secondary share-button" id="shareButton" type="button">Дәрес сылтамасын күчерергә</button>
-          <p class="share-status" id="shareStatus" aria-live="polite"></p>
+        <div class="course-layout">
+          <div class="curriculum">
+            <div class="section-heading">
+              <div><p class="eyebrow">Уку юлы</p><h2>7 бүлек • 50 дәрес</h2></div>
+              <p>Дәресләрне тәртип буенча үтегез: укыгыз, мисал өстендә эшләгез, аннары тест тапшырыгыз.</p>
+            </div>
+            <div class="module-list">${modules}</div>
+          </div>
+          <aside class="panel quick-panel">
+            <p class="eyebrow">Укытучы өчен</p>
+            <h2>Дәрес сылтамасы</h2>
+            <p class="panel-note">Дәресне һәм төркемне сайлап, укучыга әзер сылтама җибәрегез.</p>
+            <label for="lessonSelect">Дәрес</label>
+            <select id="lessonSelect">${lessons}</select>
+            <p class="lesson-meta" id="lessonMeta"></p>
+            <label class="share-group-label" for="shareGroup">Төркем</label>
+            <input id="shareGroup" maxlength="60" placeholder="Мәсәлән, 2 нче төркем">
+            <button class="primary share-button" id="shareButton" type="button">Сылтаманы күчерергә</button>
+            <p class="share-status" id="shareStatus" aria-live="polite"></p>
+          </aside>
         </div>
       </section>`;
 
@@ -156,7 +244,6 @@
       meta.textContent = `${lesson.questions.length} сорау • ${lesson.title}`;
     };
     select.addEventListener("change", updateMeta);
-    document.getElementById("startButton").addEventListener("click", () => startQuiz(Number(select.value)));
     document.getElementById("shareButton").addEventListener("click", () => copyLessonLink(Number(select.value)));
     updateMeta();
     focusMain();
@@ -229,6 +316,7 @@
     const score = state.lesson.questions.reduce((sum, question, index) => sum + (state.answers[index] === question.answer ? 1 : 0), 0);
     const percent = Math.round((score / total) * 100);
     setBest(score, total);
+    markCompleted(state.lesson.id, percent);
     if (lockedLesson && state.student) submitResult(score, total, percent);
 
     const mistakes = state.lesson.questions.map((question, index) => ({
@@ -309,7 +397,10 @@
     }
   }
 
-  homeButton.addEventListener("click", renderHome);
+  homeButton.addEventListener("click", () => {
+    if (lockedLesson) window.location.href = lessonUrl(0);
+    else renderHome();
+  });
   renderBest();
   renderHome();
 })();
