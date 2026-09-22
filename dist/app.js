@@ -268,7 +268,7 @@
       </section>`;
 
     document.getElementById("homeResult").addEventListener("click", renderHome);
-    document.getElementById("retryButton").addEventListener("click", () => startQuiz(state.lesson.id));
+    document.getElementById("retryButton").addEventListener("click", () => startQuiz(state.lesson.id, state.student));
     focusMain();
   }
 
