@@ -132,7 +132,7 @@ h1 {
 
 label { display: block; margin-bottom: 8px; color: var(--green); font-size: .88rem; font-weight: 700; }
 
-select {
+select, input {
   width: 100%;
   min-height: 54px;
   padding: 0 44px 0 16px;
@@ -148,6 +148,13 @@ select {
 .share-status { min-height: 22px; margin: 8px 0 -12px; color: var(--good); font-size: .82rem; text-align: center; }
 .lesson-panel { display: flex; flex-direction: column; justify-content: center; }
 .lesson-panel h2 { line-height: 1.4; }
+.lesson-panel input { margin-bottom: 16px; }
+.assigned-group { margin: 2px 0 18px; padding: 12px 14px; border-radius: 12px; background: #eef7f1; }
+.assigned-group span { display: block; color: var(--muted); font-size: .78rem; }
+.assigned-group strong { color: var(--green); }
+.privacy-note { margin: 0 0 16px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.share-group-label { margin-top: 18px; }
+.submission-status { margin: 16px 0 0; color: var(--green-2); font-size: .88rem; font-weight: 700; text-align: center; }
 
 .primary, .secondary {
   min-height: 52px;
