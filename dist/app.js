@@ -136,7 +136,7 @@
             </article>
             <article class="study-step book-step">
               <span>2</span>
-              <div><h2>Китап белән эшлә</h2><p>${escapeHtml(readingTask)}</p><strong>«${escapeHtml(course.bookTitle || "Фикһ әлифбасы")}» • ${escapeHtml(pages)} нче бит</strong></div>
+              <div><h2>Китап белән эшлә</h2><p>${escapeHtml(readingTask)}</p><strong>«${escapeHtml(course.bookTitle || "Фикһ китабы")}» • ${escapeHtml(pages)} нче бит</strong></div>
             </article>
             <article class="study-step">
               <span>3</span>

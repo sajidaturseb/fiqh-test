@@ -1,6 +1,6 @@
 window.FIQH_COURSE = {
   title: "Фикһ нигезләре",
-  bookTitle: "Фикһ әлифбасы",
+  bookTitle: "Фикһ китабы",
   modules: [
     {
       id: "taharat",
