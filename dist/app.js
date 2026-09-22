@@ -7,7 +7,9 @@
   const bestScore = document.getElementById("bestScore");
   const requestedLessonId = Number(new URLSearchParams(window.location.search).get("lesson"));
   const lockedLesson = data.lessons.find((lesson) => lesson.id === requestedLessonId) || null;
-  let state = { lesson: null, index: 0, answers: [] };
+  const assignedGroup = new URLSearchParams(window.location.search).get("group") || "";
+  const resultsEndpoint = window.FIQH_RESULTS_ENDPOINT || "";
+  let state = { lesson: null, index: 0, answers: [], student: null, startedAt: null, attemptId: null };
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>'"]/g, (char) => ({
@@ -45,16 +47,18 @@
     return `${lesson.id} нче дәрес — ${lesson.title}`;
   }
 
-  function lessonUrl(lessonId) {
+  function lessonUrl(lessonId, group) {
     const url = new URL(window.location.href);
     url.search = "";
     url.hash = "";
     url.searchParams.set("lesson", lessonId);
+    if (group) url.searchParams.set("group", group);
     return url.toString();
   }
 
   async function copyLessonLink(lessonId) {
-    const link = lessonUrl(lessonId);
+    const groupField = document.getElementById("shareGroup");
+    const link = lessonUrl(lessonId, groupField ? groupField.value.trim() : "");
     try {
       await navigator.clipboard.writeText(link);
     } catch (_) {
@@ -89,11 +93,24 @@
           <p class="eyebrow">Сезнең тест</p>
           <h2>${escapeHtml(lessonLabel(lesson))}</h2>
           <p class="panel-note">Җавапларны сайлап, тестны ахырга кадәр үтегез.</p>
-          <button class="primary" id="startButton" type="button">Тестны башларга</button>
+          <form id="studentForm">
+            <label for="studentName">Исем һәм фамилия</label>
+            <input id="studentName" name="studentName" maxlength="80" autocomplete="name" required>
+            ${assignedGroup ? `<p class="assigned-group"><span>Төркем</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : `<label for="studentGroup">Төркем</label><input id="studentGroup" name="studentGroup" maxlength="60" required>`}
+            <p class="privacy-note">Нәтиҗә, исем һәм төркем укытучы журналына җибәрелә.</p>
+            <button class="primary" id="startButton" type="submit">Тестны башларга</button>
+          </form>
         </div>
       </section>`;
 
-    document.getElementById("startButton").addEventListener("click", () => startQuiz(lesson.id));
+    document.getElementById("studentForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = document.getElementById("studentName").value.trim();
+      const groupInput = document.getElementById("studentGroup");
+      const group = assignedGroup || (groupInput ? groupInput.value.trim() : "");
+      if (!name || !group) return;
+      startQuiz(lesson.id, { name, group });
+    });
     focusMain();
   }
 
@@ -125,6 +142,8 @@
           <select id="lessonSelect">${lessons}</select>
           <p class="lesson-meta" id="lessonMeta"></p>
           <button class="primary" id="startButton" type="button">Башларга</button>
+          <label class="share-group-label" for="shareGroup">Төркем (сылтамага өстәлә)</label>
+          <input id="shareGroup" maxlength="60" placeholder="Мәсәлән, 2 нче төркем">
           <button class="secondary share-button" id="shareButton" type="button">Дәрес сылтамасын күчерергә</button>
           <p class="share-status" id="shareStatus" aria-live="polite"></p>
         </div>
@@ -143,11 +162,14 @@
     focusMain();
   }
 
-  function startQuiz(lessonId) {
+  function startQuiz(lessonId, student) {
     state = {
       lesson: data.lessons.find((item) => item.id === lessonId),
       index: 0,
-      answers: []
+      answers: [],
+      student: student || null,
+      startedAt: Date.now(),
+      attemptId: self.crypto && self.crypto.randomUUID ? self.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`
     };
     renderQuestion();
   }
@@ -207,6 +229,7 @@
     const score = state.lesson.questions.reduce((sum, question, index) => sum + (state.answers[index] === question.answer ? 1 : 0), 0);
     const percent = Math.round((score / total) * 100);
     setBest(score, total);
+    if (lockedLesson && state.student) submitResult(score, total, percent);
 
     const mistakes = state.lesson.questions.map((question, index) => ({
       question,
@@ -237,6 +260,7 @@
           <button class="secondary" id="homeResult" type="button">${lockedLesson ? "Дәрес башына" : "Башка дәрес"}</button>
           <button class="primary" id="retryButton" type="button">Тагын бер тапкыр</button>
         </div>
+        ${lockedLesson ? `<p class="submission-status" id="submissionStatus" aria-live="polite">Нәтиҗә җибәрелә…</p>` : ""}
         <div class="review">
           <h3>${mistakes.length ? `Хаталар өстендә эш (${mistakes.length})` : "Нәтиҗә"}</h3>
           <div class="review-list">${review}</div>
@@ -246,6 +270,42 @@
     document.getElementById("homeResult").addEventListener("click", renderHome);
     document.getElementById("retryButton").addEventListener("click", () => startQuiz(state.lesson.id));
     focusMain();
+  }
+
+  async function submitResult(score, total, percent) {
+    const status = document.getElementById("submissionStatus");
+    if (!resultsEndpoint) {
+      if (status) status.textContent = "Нәтиҗәләрне җибәрү вакытлыча көйләнмәгән.";
+      return;
+    }
+    const payload = {
+      studentName: state.student.name,
+      group: state.student.group,
+      lessonId: state.lesson.id,
+      lessonTitle: state.lesson.title,
+      score,
+      total,
+      percent,
+      durationSeconds: Math.max(1, Math.round((Date.now() - state.startedAt) / 1000)),
+      attemptId: state.attemptId,
+      answers: state.lesson.questions.map((question, index) => ({
+        number: question.number,
+        selected: state.answers[index] || "",
+        correct: question.answer,
+        isCorrect: state.answers[index] === question.answer
+      }))
+    };
+    try {
+      await fetch(resultsEndpoint, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      if (status) status.textContent = "Нәтиҗә укытучыга җибәрелде.";
+    } catch (_) {
+      if (status) status.textContent = "Нәтиҗәне җибәреп булмады. Интернетны тикшереп, кабатлап карагыз.";
+    }
   }
 
   homeButton.addEventListener("click", renderHome);
