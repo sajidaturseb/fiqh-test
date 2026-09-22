@@ -62,8 +62,6 @@
   }
 
   function lessonLabel(lesson) {
-    if (lesson.id === 25) return "25 нче дәрес — арадаш тест";
-    if (lesson.id === 50) return "50 нче дәрес — йомгаклау зачеты";
     return `${lesson.id} нче дәрес — ${lesson.title}`;
   }
 
@@ -117,9 +115,9 @@
     const pageWord = /[-,]/.test(pages) ? "битләрен" : "битен";
     const isAssessment = lesson.id === 25 || lesson.id === 49 || lesson.id === 50;
     const readingTask = isAssessment
-      ? "Үткән бүлекләрнең схемаларын һәм үзегезнең язмаларыгызны кабатлагыз. Җавапны яттан түгел, кагыйдәнең мәгънәсен аңлап сайлагыз."
-      : `Китапның ${pages} нче ${pageWord} карагыз. Өч төп фикерне дәфтәргә үз сүзләрегез белән языгыз.`;
-    const practice = module ? module.practice : "Теманы үз сүзләрегез белән аңлатып карагыз.";
+      ? "Тәһарәт, намаз, ураза, зәкят һәм хаҗ бүлекләрен кабатлагыз."
+      : `«${course.bookTitle || "Фикһ китабы"}»ның ${pages} нче ${pageWord} укыгыз.`;
+    const practice = module ? module.practice : "Үткән бүлекләрне кабатлагыз.";
     app.innerHTML = `
       <section class="lesson-workspace">
         <div class="lesson-study">
@@ -128,30 +126,30 @@
           </nav>
           <p class="eyebrow">${lesson.id} нче дәрес</p>
           <h1>${escapeHtml(lesson.title)}</h1>
-          <p class="lead">Бу дәрестән соң сез теманың төп кагыйдәләрен үз сүзләрегез белән аңлата һәм аларны мисалларда таный аласыз.</p>
+          <p class="lead">Дәреснең темасы «${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләренә нигезләнгән.</p>
           <div class="study-steps">
             <article class="study-step">
               <span>1</span>
-              <div><h2>Максатны аңла</h2><p>${escapeHtml(lesson.title)} темасының кайда һәм ни өчен кулланылуын билгелә.</p></div>
+              <div><h2>Теманы укыгыз</h2><p>${escapeHtml(lesson.title)}</p></div>
             </article>
             <article class="study-step book-step">
               <span>2</span>
-              <div><h2>Китап белән эшлә</h2><p>${escapeHtml(readingTask)}</p><strong>«${escapeHtml(course.bookTitle || "Фикһ китабы")}» • ${escapeHtml(pages)} нче бит</strong></div>
+              <div><h2>«${escapeHtml(course.bookTitle || "Фикһ китабы")}»</h2><p>${escapeHtml(readingTask)}</p><strong>${escapeHtml(pages)} нче бит</strong></div>
             </article>
             <article class="study-step">
               <span>3</span>
-              <div><h2>Гамәлдә куллан</h2><p>${escapeHtml(practice)}</p></div>
+              <div><h2>Кабатлау</h2><p>${escapeHtml(practice)}</p></div>
             </article>
             <article class="study-step">
               <span>4</span>
-              <div><h2>Белемеңне тикшер</h2><p>${lesson.questions.length} сорауга җавап бир. Ахырда хаталар өстендә эш бүлеге ачыла.</p></div>
+              <div><h2>Тест</h2><p>${lesson.questions.length} сорауга җавап бирегез.</p></div>
             </article>
           </div>
         </div>
         <div class="panel lesson-panel">
           <p class="eyebrow">Дәрес тесты</p>
           <h2>${lesson.questions.length} сорау</h2>
-          <p class="panel-note">Китап белән эшләгәннән соң, исемегезне язып тестны башлагыз.</p>
+          <p class="panel-note">«${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләрен укыгыз һәм тестны башлагыз.</p>
           <form id="studentForm">
             <label for="studentName">Исем һәм фамилия</label>
             <input id="studentName" name="studentName" maxlength="80" autocomplete="name" required>
@@ -202,9 +200,9 @@
       <section class="course-home">
         <div class="course-intro">
           <div>
-            <p class="eyebrow">Китап + онлайн практика</p>
-            <h1>Фикһ нигезләрен адымлап өйрән</h1>
-            <p class="lead">Һәр дәрестә китапның төгәл битләре, гамәли бирем һәм белемне тикшерү тесты бар. Онлайн курс китапны алыштырмый — аны аңлап укырга ярдәм итә.</p>
+            <p class="eyebrow">«Фикһ китабы» буенча онлайн курс</p>
+            <h1>Фикһ курсы</h1>
+            <p class="lead">50 дәрес. Һәр дәрестә «Фикһ китабы»ның битләре һәм тест күрсәтелгән.</p>
           </div>
           <aside class="progress-card">
             <span class="progress-label">Сезнең алга китеш</span>
@@ -218,7 +216,7 @@
           <div class="curriculum">
             <div class="section-heading">
               <div><p class="eyebrow">Уку юлы</p><h2>7 бүлек • 50 дәрес</h2></div>
-              <p>Дәресләрне тәртип буенча үтегез: укыгыз, мисал өстендә эшләгез, аннары тест тапшырыгыз.</p>
+              <p>«Фикһ китабы»ның күрсәтелгән битләрен укыгыз, аннары тестны үтәгез.</p>
             </div>
             <div class="module-list">${modules}</div>
           </div>
