@@ -5,6 +5,8 @@
   const app = document.getElementById("app");
   const homeButton = document.getElementById("homeButton");
   const bestScore = document.getElementById("bestScore");
+  const requestedLessonId = Number(new URLSearchParams(window.location.search).get("lesson"));
+  const lockedLesson = data.lessons.find((lesson) => lesson.id === requestedLessonId) || null;
   let state = { lesson: null, index: 0, answers: [] };
 
   function escapeHtml(value) {
@@ -37,12 +39,71 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function lessonLabel(lesson) {
+    if (lesson.id === 25) return "25 нче дәрес — арадаш тест";
+    if (lesson.id === 50) return "50 нче дәрес — йомгаклау зачеты";
+    return `${lesson.id} нче дәрес — ${lesson.title}`;
+  }
+
+  function lessonUrl(lessonId) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.searchParams.set("lesson", lessonId);
+    return url.toString();
+  }
+
+  async function copyLessonLink(lessonId) {
+    const link = lessonUrl(lessonId);
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch (_) {
+      const field = document.createElement("textarea");
+      field.value = link;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      document.execCommand("copy");
+      field.remove();
+    }
+    const status = document.getElementById("shareStatus");
+    if (status) status.textContent = "Сылтама күчерелде";
+  }
+
+  function renderLockedHome() {
+    const lesson = lockedLesson;
+    app.innerHTML = `
+      <section class="intro-grid lesson-landing">
+        <div class="intro-copy">
+          <p class="eyebrow">${lesson.id} нче дәрес</p>
+          <h1>${escapeHtml(lesson.title)}</h1>
+          <p class="lead">Һәр сорауда бер генә дөрес җавап бар. Нәтиҗә тест тәмамлангач күрсәтелә.</p>
+          <div class="stats" aria-label="Тест турында мәгълүмат">
+            <div class="stat"><strong>${lesson.questions.length}</strong><span>сорау</span></div>
+            <div class="stat"><strong>1</strong><span>тест</span></div>
+          </div>
+        </div>
+        <div class="panel lesson-panel">
+          <p class="eyebrow">Сезнең тест</p>
+          <h2>${escapeHtml(lessonLabel(lesson))}</h2>
+          <p class="panel-note">Җавапларны сайлап, тестны ахырга кадәр үтегез.</p>
+          <button class="primary" id="startButton" type="button">Тестны башларга</button>
+        </div>
+      </section>`;
+
+    document.getElementById("startButton").addEventListener("click", () => startQuiz(lesson.id));
+    focusMain();
+  }
+
   function renderHome() {
+    if (lockedLesson) {
+      renderLockedHome();
+      return;
+    }
     const lessons = data.lessons.map((lesson) => {
-      const label = lesson.id === 25 ? "25 нче дәрес — арадаш тест" :
-        lesson.id === 50 ? "50 нче дәрес — йомгаклау зачеты" :
-        `${lesson.id} нче дәрес — ${lesson.title}`;
-      return `<option value="${lesson.id}">${escapeHtml(label)}</option>`;
+      return `<option value="${lesson.id}">${escapeHtml(lessonLabel(lesson))}</option>`;
     }).join("");
 
     app.innerHTML = `
@@ -64,6 +125,8 @@
           <select id="lessonSelect">${lessons}</select>
           <p class="lesson-meta" id="lessonMeta"></p>
           <button class="primary" id="startButton" type="button">Башларга</button>
+          <button class="secondary share-button" id="shareButton" type="button">Дәрес сылтамасын күчерергә</button>
+          <p class="share-status" id="shareStatus" aria-live="polite"></p>
         </div>
       </section>`;
 
@@ -75,6 +138,7 @@
     };
     select.addEventListener("change", updateMeta);
     document.getElementById("startButton").addEventListener("click", () => startQuiz(Number(select.value)));
+    document.getElementById("shareButton").addEventListener("click", () => copyLessonLink(Number(select.value)));
     updateMeta();
     focusMain();
   }
@@ -170,7 +234,7 @@
           </div>
         </div>
         <div class="result-actions">
-          <button class="secondary" id="homeResult" type="button">Башка дәрес</button>
+          <button class="secondary" id="homeResult" type="button">${lockedLesson ? "Дәрес башына" : "Башка дәрес"}</button>
           <button class="primary" id="retryButton" type="button">Тагын бер тапкыр</button>
         </div>
         <div class="review">
