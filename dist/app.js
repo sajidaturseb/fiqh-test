@@ -296,12 +296,13 @@
       }))
     };
     try {
-      await fetch(resultsEndpoint, {
+      const response = await fetch(resultsEndpoint, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "request_failed");
       if (status) status.textContent = "Нәтиҗә укытучыга җибәрелде.";
     } catch (_) {
       if (status) status.textContent = "Нәтиҗәне җибәреп булмады. Интернетны тикшереп, кабатлап карагыз.";

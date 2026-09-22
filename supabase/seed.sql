@@ -1,0 +1,2 @@
+-- Production quiz content is served from dist/data.js.
+-- No database seed data is required.

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="tt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Фикһ тестлары — укытучы журналы</title>
+  <link rel="stylesheet" href="teacher.css">
+</head>
+<body>
+  <main class="wrap">
+    <section class="card login" id="loginPanel">
+      <p class="eyebrow">Фикһ тестлары</p>
+      <h1>Укытучы журналы</h1>
+      <p class="muted">Нәтиҗәләрне карау өчен PIN-кодны кертегез.</p>
+      <form id="loginForm">
+        <label for="teacherPin">PIN-код</label>
+        <input id="teacherPin" type="password" inputmode="numeric" autocomplete="current-password" required>
+        <p class="error" id="loginError" aria-live="polite"></p>
+        <button type="submit">Керергә</button>
+      </form>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Фикһ тестлары</p>
+          <h1>Укучылар нәтиҗәләре</h1>
+          <p class="muted">Омтылышлар, үзләштерү дәрәҗәсе һәм авыр сораулар</p>
+        </div>
+        <div class="head-actions">
+          <button class="secondary" id="refreshButton" type="button">Яңартырга</button>
+          <button class="secondary" id="exportButton" type="button">CSV күчереп алырга</button>
+        </div>
+      </div>
+
+      <div class="filters card">
+        <div><label for="groupFilter">Төркем</label><select id="groupFilter"></select></div>
+        <div><label for="lessonFilter">Дәрес</label><select id="lessonFilter"></select></div>
+        <div><label for="studentFilter">Укучы</label><select id="studentFilter"></select></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><strong id="attempts">0</strong><span>омтылыш</span></div>
+        <div class="stat"><strong id="students">0</strong><span>укучы</span></div>
+        <div class="stat"><strong id="average">0%</strong><span>уртача нәтиҗә</span></div>
+        <div class="stat"><strong id="mastered">0%</strong><span>үзләштерелгән</span></div>
+      </div>
+
+      <section class="card table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Вакыт</th><th>Укучы</th><th>Төркем</th><th>Дәрес</th><th>Нәтиҗә</th><th>Дәвамлылык</th><th>Бәя</th></tr></thead>
+            <tbody id="resultRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card analysis">
+        <h2>Сораулар буенча анализ</h2>
+        <p class="muted">Иң күп хата ясалган сораулар беренче күрсәтелә.</p>
+        <div id="questionRows"></div>
+      </section>
+    </section>
+  </main>
+  <script src="config.js"></script>
+  <script src="teacher.js"></script>
+</body>
+</html>
