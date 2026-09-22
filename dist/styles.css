@@ -144,6 +144,10 @@ select {
 }
 
 .lesson-meta { min-height: 48px; margin: 14px 2px 20px; color: var(--muted); font-size: .88rem; line-height: 1.5; }
+.share-button { width: 100%; margin-top: 12px; }
+.share-status { min-height: 22px; margin: 8px 0 -12px; color: var(--good); font-size: .82rem; text-align: center; }
+.lesson-panel { display: flex; flex-direction: column; justify-content: center; }
+.lesson-panel h2 { line-height: 1.4; }
 
 .primary, .secondary {
   min-height: 52px;
