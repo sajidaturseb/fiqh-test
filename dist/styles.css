@@ -144,6 +144,17 @@ select, input {
   font-size: 1rem;
 }
 
+/* Make group names easier to read without changing the native selector. */
+#studentGroup, #shareGroup {
+  min-height: 60px;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+#studentGroup option, #shareGroup option { font-weight: 700; }
+#studentGroup optgroup, #shareGroup optgroup { font-weight: 800; }
+label[for="studentGroup"], label[for="shareGroup"] { font-size: 1rem; font-weight: 800; }
+.assigned-group strong { font-size: 1.08rem; font-weight: 800; }
+
 .lesson-meta { min-height: 48px; margin: 14px 2px 20px; color: var(--muted); font-size: .88rem; line-height: 1.5; }
 .share-button { width: 100%; margin-top: 12px; }
 .share-status { min-height: 22px; margin: 8px 0 -12px; color: var(--good); font-size: .82rem; text-align: center; }
