@@ -8,7 +8,16 @@
   const bestScore = document.getElementById("bestScore");
   const requestedLessonId = Number(new URLSearchParams(window.location.search).get("lesson"));
   const lockedLesson = data.lessons.find((lesson) => lesson.id === requestedLessonId) || null;
-  const assignedGroup = new URLSearchParams(window.location.search).get("group") || "";
+  const groupSections = [
+    { heading: "1 курс", prefix: "1 курс", count: 8 },
+    { heading: "2 курс", prefix: "2 курс", count: 8 },
+    { heading: "Онлайн 1 курс", prefix: "Онлайн 1 курс", count: 10 },
+    { heading: "Онлайн 2 курс", prefix: "Онлайн 2 курс", count: 10 }
+  ];
+  const allowedGroups = new Set(groupSections.flatMap((section) =>
+    Array.from({ length: section.count }, (_, index) => `${section.prefix} — ${index + 1} группа`)));
+  const requestedGroup = new URLSearchParams(window.location.search).get("group") || "";
+  const assignedGroup = allowedGroups.has(requestedGroup) ? requestedGroup : "";
   const resultsEndpoint = window.FIQH_RESULTS_ENDPOINT || "";
   let state = { lesson: null, index: 0, answers: [], student: null, startedAt: null, attemptId: null };
 
@@ -16,6 +25,14 @@
     return String(value).replace(/[&<>'"]/g, (char) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
     })[char]);
+  }
+
+  function groupOptions(placeholder) {
+    return `<option value="" selected>${placeholder}</option>` + groupSections.map((section) =>
+      `<optgroup label="${escapeHtml(section.heading)}">${Array.from({ length: section.count }, (_, index) => {
+        const label = `${section.prefix} — ${index + 1} группа`;
+        return `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`;
+      }).join("")}</optgroup>`).join("");
   }
 
   function getBest() {
@@ -90,7 +107,8 @@
 
   async function copyLessonLink(lessonId) {
     const groupField = document.getElementById("shareGroup");
-    const link = lessonUrl(lessonId, groupField ? groupField.value.trim() : "");
+    const group = groupField && allowedGroups.has(groupField.value) ? groupField.value : "";
+    const link = lessonUrl(lessonId, group);
     try {
       await navigator.clipboard.writeText(link);
     } catch (_) {
@@ -153,9 +171,9 @@
           <form id="studentForm">
             <label for="studentName">Исем һәм фамилия</label>
             <input id="studentName" name="studentName" maxlength="80" autocomplete="name" required>
-            ${assignedGroup ? `<p class="assigned-group"><span>Төркем</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : `<label for="studentGroup">Төркем</label><input id="studentGroup" name="studentGroup" maxlength="60" required>`}
+            ${assignedGroup ? `<p class="assigned-group"><span>Группа</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : `<label for="studentGroup">Группа</label><select id="studentGroup" name="studentGroup" required>${groupOptions("Выберите группу")}</select>`}
             <label class="book-check"><input id="bookReady" type="checkbox" required><span>Китаптагы күрсәтелгән битләр белән эшләдем</span></label>
-            <p class="privacy-note">Нәтиҗә, исем һәм төркем укытучы журналына җибәрелә.</p>
+            <p class="privacy-note">Результат, имя и группа отправляются в журнал преподавателя.</p>
             <button class="primary" id="startButton" type="submit">Тестны башларга</button>
           </form>
         </div>
@@ -165,8 +183,8 @@
       event.preventDefault();
       const name = document.getElementById("studentName").value.trim();
       const groupInput = document.getElementById("studentGroup");
-      const group = assignedGroup || (groupInput ? groupInput.value.trim() : "");
-      if (!name || !group) return;
+      const group = assignedGroup || (groupInput ? groupInput.value : "");
+      if (!name || !allowedGroups.has(group)) return;
       startQuiz(lesson.id, { name, group });
     });
     focusMain();
@@ -223,12 +241,12 @@
           <aside class="panel quick-panel">
             <p class="eyebrow">Укытучы өчен</p>
             <h2>Дәрес сылтамасы</h2>
-            <p class="panel-note">Дәресне һәм төркемне сайлап, укучыга әзер сылтама җибәрегез.</p>
+            <p class="panel-note">Выберите урок и группу, затем отправьте готовую ссылку ученику.</p>
             <label for="lessonSelect">Дәрес</label>
             <select id="lessonSelect">${lessons}</select>
             <p class="lesson-meta" id="lessonMeta"></p>
-            <label class="share-group-label" for="shareGroup">Төркем</label>
-            <input id="shareGroup" maxlength="60" placeholder="Мәсәлән, 2 нче төркем">
+            <label class="share-group-label" for="shareGroup">Группа</label>
+            <select id="shareGroup">${groupOptions("Группу выберет ученик")}</select>
             <button class="primary share-button" id="shareButton" type="button">Сылтаманы күчерергә</button>
             <p class="share-status" id="shareStatus" aria-live="polite"></p>
           </aside>
