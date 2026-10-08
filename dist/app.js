@@ -333,7 +333,6 @@
     const percent = Math.round((score / total) * 100);
     setBest(score, total);
     markCompleted(state.lesson.id, percent);
-    if (lockedLesson && state.student) submitResult(score, total, percent);
 
     const mistakes = state.lesson.questions.map((question, index) => ({
       question,
@@ -373,6 +372,7 @@
 
     document.getElementById("homeResult").addEventListener("click", renderHome);
     document.getElementById("retryButton").addEventListener("click", () => startQuiz(state.lesson.id, state.student));
+    if (lockedLesson && state.student) submitResult(score, total, percent);
     focusMain();
   }
 
