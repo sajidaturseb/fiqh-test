@@ -381,8 +381,8 @@ body { font-size: 21px; line-height: 1.7; }
 .study-step strong { font-size: 1.1rem; }
 label, select, input, .option, .primary, .secondary { font-size: clamp(1.12rem, 1.5vw, 1.3rem); }
 select, input, .primary, .secondary { min-height: 62px; }
-.option { min-height: 76px; padding: 18px 20px; line-height: 1.6; }
-.question-text { font-size: clamp(1.7rem, 2.6vw, 2.3rem); line-height: 1.45; }
+.option { min-height: 76px; padding: 18px 20px; line-height: 1.6; font-weight: 700; }
+.question-text { font-size: clamp(1.7rem, 2.6vw, 2.3rem); line-height: 1.45; font-weight: 800; }
 .review-item, .review-item span, .result-summary { font-size: 1.2rem; line-height: 1.65; }
 .quiz-card, .result-card, .panel { background: #fff; }
 .progress-card { background: linear-gradient(145deg, #07606c, #1591a0); }
