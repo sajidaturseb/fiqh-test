@@ -10,28 +10,33 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=large-turquoise-bold-button-20261016">
+  <link rel="stylesheet" href="styles.css?v=ru-pilot-1-5-20261019">
 </head>
 <body>
   <div class="shell">
     <header class="topbar">
       <button class="brand" id="homeButton" type="button" aria-label="Баш биткә кайту">
         <span class="brand-mark" aria-hidden="true">☾</span>
-        <span>Фикһ курсы</span>
+        <span id="brandTitle">Фикһ курсы</span>
       </button>
+      <div class="language-switch" id="languageSwitch" aria-label="Выбор языка" hidden>
+        <button type="button" data-lang="tt">Татарча</button>
+        <button type="button" data-lang="ru">Русский</button>
+      </div>
       <div class="best-score" id="bestScore" aria-live="polite"></div>
     </header>
 
     <main id="app" tabindex="-1"></main>
 
-    <footer>
+    <footer id="courseFooter">
       «Фикһ китабы» буенча онлайн курс
     </footer>
   </div>
 
   <script src="questions.js?v=book-terms-20260922-3"></script>
   <script src="course.js?v=book-terms-20260922-3"></script>
+  <script src="ru-data.js?v=pilot-1-5"></script>
   <script src="config.js?v=book-terms-20260922-3"></script>
-  <script src="app.js?v=groups-20261005"></script>
+  <script src="app.js?v=ru-pilot-1-5"></script>
 </body>
 </html>

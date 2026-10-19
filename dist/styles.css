@@ -396,3 +396,10 @@ select, input, .primary, .secondary { min-height: 62px; }
   .study-step { padding: 19px 17px; }
   .study-step p, .book-check, .option { font-size: 1.15rem; }
 }
+/* Five-lesson Russian pilot: high-contrast language switch, Tatar by default. */
+.language-switch{display:flex;gap:5px;padding:5px;background:#fff;border-radius:13px;border:2px solid #d9edf0;box-shadow:0 4px 12px #103e4926}
+.language-switch[hidden]{display:none}
+.language-switch button{border:0;background:transparent;color:#184650;border-radius:9px;padding:9px 14px;font:800 16px Arial,sans-serif;cursor:pointer}
+.language-switch button[aria-pressed="true"]{background:#087182;color:#fff}
+.language-switch button:focus-visible{outline:3px solid #e4ad51;outline-offset:2px}
+@media(max-width:650px){.language-switch{order:3;width:100%;justify-content:center}.language-switch button{flex:1}}

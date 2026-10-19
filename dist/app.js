@@ -3,11 +3,16 @@
 
   const data = window.FIQH_QUIZ_DATA;
   const course = window.FIQH_COURSE || { modules: [], lessonPages: {} };
+  const russian = window.FIQH_RU_DATA || { module: null, lessons: [] };
   const app = document.getElementById("app");
   const homeButton = document.getElementById("homeButton");
   const bestScore = document.getElementById("bestScore");
+  const languageSwitch = document.getElementById("languageSwitch");
   const requestedLessonId = Number(new URLSearchParams(window.location.search).get("lesson"));
   const lockedLesson = data.lessons.find((lesson) => lesson.id === requestedLessonId) || null;
+  const hasRussian = Boolean(lockedLesson && russian.lessons.some((lesson) => lesson.id === lockedLesson.id));
+  let language = hasRussian && new URLSearchParams(window.location.search).get("lang") === "ru" ? "ru" : "tt";
+  let currentScreen = "home";
   const groupSections = [
     { heading: "1 курс", prefix: "1 курс", count: 8 },
     { heading: "2 курс", prefix: "2 курс", count: 8 },
@@ -20,6 +25,54 @@
   const assignedGroup = allowedGroups.has(requestedGroup) ? requestedGroup : "";
   const resultsEndpoint = window.FIQH_RESULTS_ENDPOINT || "";
   let state = { lesson: null, index: 0, answers: [], student: null, startedAt: null, attemptId: null };
+  let submissionStatusCode = "sending";
+
+  function tr(tatar, russianText) { return language === "ru" ? russianText : tatar; }
+  function localizedLesson(lesson) {
+    return language === "ru" ? (russian.lessons.find((item) => item.id === lesson.id) || lesson) : lesson;
+  }
+  function localizedQuestion(lesson, index) {
+    return localizedLesson(lesson).questions[index];
+  }
+  function refreshLanguageSwitch() {
+    if (!languageSwitch) return;
+    languageSwitch.hidden = !hasRussian;
+    if (!hasRussian) return;
+    document.documentElement.lang = language;
+    homeButton.setAttribute("aria-label", tr("Баш биткә кайту", "Вернуться на главную"));
+    document.getElementById("brandTitle").textContent = tr("Фикһ курсы", "Курс фикха");
+    document.getElementById("courseFooter").textContent = tr("«Фикһ китабы» буенча онлайн курс", "Онлайн-курс по учебнику «Азбука фикха»");
+    languageSwitch.querySelectorAll("button").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.lang === language));
+    });
+  }
+  function switchLanguage(nextLanguage) {
+    if (!hasRussian || !["tt", "ru"].includes(nextLanguage)) return;
+    language = nextLanguage;
+    const url = new URL(window.location.href);
+    if (language === "ru") url.searchParams.set("lang", "ru");
+    else url.searchParams.delete("lang");
+    window.history.replaceState(null, "", url.toString());
+    refreshLanguageSwitch();
+    renderBest();
+    if (currentScreen === "question") renderQuestion();
+    else if (currentScreen === "results") renderResults(false);
+    else renderHome();
+  }
+  function submissionMessage() {
+    const messages = {
+      sending: ["Нәтиҗә җибәрелә…", "Результат отправляется…"],
+      sent: ["Нәтиҗә укытучыга җибәрелде.", "Результат отправлен преподавателю."],
+      unavailable: ["Нәтиҗәләрне җибәрү вакытлыча көйләнмәгән.", "Отправка результатов временно не настроена."],
+      failed: ["Нәтиҗәне җибәреп булмады. Интернетны тикшереп, кабатлап карагыз.", "Не удалось отправить результат. Проверьте интернет и попробуйте ещё раз."]
+    };
+    return tr(...messages[submissionStatusCode]);
+  }
+  function setSubmissionStatus(code) {
+    submissionStatusCode = code;
+    const status = document.getElementById("submissionStatus");
+    if (status) status.textContent = submissionMessage();
+  }
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>'"]/g, (char) => ({
@@ -70,7 +123,7 @@
 
   function renderBest() {
     const best = getBest();
-    bestScore.textContent = best ? `Иң яхшы нәтиҗә: ${Math.round(best.ratio * 100)}%` : "";
+    bestScore.textContent = best ? `${tr("Иң яхшы нәтиҗә", "Лучший результат")}: ${Math.round(best.ratio * 100)}%` : "";
   }
 
   function focusMain() {
@@ -127,54 +180,57 @@
   }
 
   function renderLockedHome() {
+    currentScreen = "home";
     const lesson = lockedLesson;
+    const shownLesson = localizedLesson(lesson);
     const module = getModuleForLesson(lesson.id);
     const pages = bookPages(lesson.id);
     const pageWord = /[-,]/.test(pages) ? "битләрен" : "битен";
     const isAssessment = lesson.id === 25 || lesson.id === 49 || lesson.id === 50;
-    const readingTask = isAssessment
+    const readingTaskTatar = isAssessment
       ? "Тәһарәт, намаз, ураза, зәкят һәм хаҗ бүлекләрен кабатлагыз."
       : `«${course.bookTitle || "Фикһ китабы"}»ның ${pages} нче ${pageWord} укыгыз.`;
-    const practice = module ? module.practice : "Үткән бүлекләрне кабатлагыз.";
+    const readingTask = tr(readingTaskTatar, `Прочитайте страницы ${pages} русского учебника «Азбука фикха».`);
+    const practice = tr(module ? module.practice : "Үткән бүлекләрне кабатлагыз.", russian.module.practice);
     app.innerHTML = `
       <section class="lesson-workspace">
         <div class="lesson-study">
-          <nav class="lesson-breadcrumb" aria-label="Курс юлы">
-            <a href="${escapeHtml(lessonUrl(0))}">Курс</a><span>•</span><span>${module ? escapeHtml(module.title) : "Йомгаклау"}</span>
+          <nav class="lesson-breadcrumb" aria-label="${tr("Курс юлы", "Разделы курса")}">
+            <a href="${escapeHtml(lessonUrl(0))}">${tr("Курс", "Курс")}</a><span>•</span><span>${escapeHtml(tr(module ? module.title : "Йомгаклау", russian.module.title))}</span>
           </nav>
-          <p class="eyebrow">${lesson.id} нче дәрес</p>
-          <h1>${escapeHtml(lesson.title)}</h1>
-          <p class="lead">Дәреснең темасы «${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләренә нигезләнгән.</p>
+          <p class="eyebrow">${tr(`${lesson.id} нче дәрес`, `Урок ${lesson.id}`)}</p>
+          <h1>${escapeHtml(shownLesson.title)}</h1>
+          <p class="lead">${tr(`Дәреснең темасы «${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләренә нигезләнгән.`, "Тема урока основана на указанных страницах учебника по фикху.")}</p>
           <div class="study-steps">
             <article class="study-step">
               <span>1</span>
-              <div><h2>Теманы укыгыз</h2><p>${escapeHtml(lesson.title)}</p></div>
+              <div><h2>${tr("Теманы укыгыз", "Прочитайте тему")}</h2><p>${escapeHtml(shownLesson.title)}</p></div>
             </article>
             <article class="study-step book-step">
               <span>2</span>
-              <div><h2>«${escapeHtml(course.bookTitle || "Фикһ китабы")}»</h2><p>${escapeHtml(readingTask)}</p><strong>${escapeHtml(pages)} нче бит</strong></div>
+              <div><h2>${tr(`«${escapeHtml(course.bookTitle || "Фикһ китабы")}»`, "«Азбука фикха»")}</h2><p>${escapeHtml(readingTask)}</p><strong>${tr(`${escapeHtml(pages)} нче бит`, `Страницы ${escapeHtml(pages)}`)}</strong></div>
             </article>
             <article class="study-step">
               <span>3</span>
-              <div><h2>Кабатлау</h2><p>${escapeHtml(practice)}</p></div>
+              <div><h2>${tr("Кабатлау", "Повторение")}</h2><p>${escapeHtml(practice)}</p></div>
             </article>
             <article class="study-step">
               <span>4</span>
-              <div><h2>Тест</h2><p>${lesson.questions.length} сорауга җавап бирегез.</p></div>
+              <div><h2>Тест</h2><p>${tr(`${lesson.questions.length} сорауга җавап бирегез.`, `Ответьте на ${lesson.questions.length} вопросов.`)}</p></div>
             </article>
           </div>
         </div>
         <div class="panel lesson-panel">
-          <p class="eyebrow">Дәрес тесты</p>
-          <h2>${lesson.questions.length} сорау</h2>
-          <p class="panel-note">«${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләрен укыгыз һәм тестны башлагыз.</p>
+          <p class="eyebrow">${tr("Дәрес тесты", "Тест урока")}</p>
+          <h2>${tr(`${lesson.questions.length} сорау`, `${lesson.questions.length} вопросов`)}</h2>
+          <p class="panel-note">${tr(`«${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләрен укыгыз һәм тестны башлагыз.`, "Прочитайте указанные страницы учебника и начните тест.")}</p>
           <form id="studentForm">
-            <label for="studentName">Исем һәм фамилия</label>
+            <label for="studentName">${tr("Исем һәм фамилия", "Имя и фамилия")}</label>
             <input id="studentName" name="studentName" maxlength="80" autocomplete="name" required>
             ${assignedGroup ? `<p class="assigned-group"><span>Группа</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : `<label for="studentGroup">Группа</label><select id="studentGroup" name="studentGroup" required>${groupOptions("Выберите группу")}</select>`}
-            <label class="book-check"><input id="bookReady" type="checkbox" required><span>Китаптагы күрсәтелгән битләр белән эшләдем</span></label>
+            <label class="book-check"><input id="bookReady" type="checkbox" required><span>${tr("Китаптагы күрсәтелгән битләр белән эшләдем", "Я изучил(а) указанные страницы учебника")}</span></label>
             <p class="privacy-note">Результат, имя и группа отправляются в журнал преподавателя.</p>
-            <button class="primary" id="startButton" type="submit">Тестны башларга</button>
+            <button class="primary" id="startButton" type="submit">${tr("Тестны башларга", "Начать тест")}</button>
           </form>
         </div>
       </section>`;
@@ -191,6 +247,7 @@
   }
 
   function renderHome() {
+    currentScreen = "home";
     if (lockedLesson) {
       renderLockedHome();
       return;
@@ -266,6 +323,7 @@
   }
 
   function startQuiz(lessonId, student) {
+    submissionStatusCode = "sending";
     state = {
       lesson: data.lessons.find((item) => item.id === lessonId),
       index: 0,
@@ -278,7 +336,8 @@
   }
 
   function renderQuestion() {
-    const question = state.lesson.questions[state.index];
+    currentScreen = "question";
+    const question = localizedQuestion(state.lesson, state.index);
     const selected = state.answers[state.index] || "";
     const progress = ((state.index + 1) / state.lesson.questions.length) * 100;
     const options = question.options.map((option) => `
@@ -291,7 +350,7 @@
       <section class="quiz-wrap">
         <div class="quiz-head">
           <div class="quiz-head-row">
-            <span class="quiz-title">${state.lesson.id} нче дәрес • ${escapeHtml(state.lesson.title)}</span>
+            <span class="quiz-title">${tr(`${state.lesson.id} нче дәрес`, `Урок ${state.lesson.id}`)} • ${escapeHtml(localizedLesson(state.lesson).title)}</span>
             <span>${state.index + 1} / ${state.lesson.questions.length}</span>
           </div>
           <div class="progress-track" role="progressbar" aria-valuemin="1" aria-valuemax="${state.lesson.questions.length}" aria-valuenow="${state.index + 1}">
@@ -299,12 +358,12 @@
           </div>
         </div>
         <div class="quiz-card">
-          <p class="question-number">${state.index + 1} нче сорау</p>
+          <p class="question-number">${tr(`${state.index + 1} нче сорау`, `Вопрос ${state.index + 1}`)}</p>
           <h2 class="question-text">${escapeHtml(question.text)}</h2>
           <div class="options">${options}</div>
           <div class="quiz-actions">
-            <button class="secondary" id="backButton" type="button">${state.index === 0 ? "Тесттан чыгу" : "Артка"}</button>
-            <button class="primary" id="nextButton" type="button" ${selected ? "" : "disabled"}>${state.index === state.lesson.questions.length - 1 ? "Нәтиҗәне күрсәтергә" : "Алга"}</button>
+            <button class="secondary" id="backButton" type="button">${state.index === 0 ? tr("Тесттан чыгу", "Выйти из теста") : tr("Артка", "Назад")}</button>
+            <button class="primary" id="nextButton" type="button" ${selected ? "" : "disabled"}>${state.index === state.lesson.questions.length - 1 ? tr("Нәтиҗәне күрсәтергә", "Показать результат") : tr("Алга", "Далее")}</button>
           </div>
         </div>
       </section>`;
@@ -327,7 +386,8 @@
     focusMain();
   }
 
-  function renderResults() {
+  function renderResults(submit = true) {
+    currentScreen = "results";
     const total = state.lesson.questions.length;
     const score = state.lesson.questions.reduce((sum, question, index) => sum + (state.answers[index] === question.answer ? 1 : 0), 0);
     const percent = Math.round((score / total) * 100);
@@ -335,51 +395,51 @@
     markCompleted(state.lesson.id, percent);
 
     const mistakes = state.lesson.questions.map((question, index) => ({
-      question,
+      question: localizedQuestion(state.lesson, index),
       answer: state.answers[index]
     })).filter((item) => item.answer !== item.question.answer);
 
     const review = mistakes.length ? mistakes.map((item) => {
       const chosen = item.question.options.find((option) => option.key === item.answer);
       const correct = item.question.options.find((option) => option.key === item.question.answer);
-      return `<div class="review-item"><strong>${escapeHtml(item.question.text)}</strong><br>Сезнең җавап: ${escapeHtml(chosen ? chosen.text : "җавап юк")}<span>Дөрес җавап: ${escapeHtml(correct.text)}</span></div>`;
-    }).join("") : `<p class="perfect">Барлык җаваплар да дөрес. Афәрин!</p>`;
+      return `<div class="review-item"><strong>${escapeHtml(item.question.text)}</strong><br>${tr("Сезнең җавап", "Ваш ответ")}: ${escapeHtml(chosen ? chosen.text : tr("җавап юк", "нет ответа"))}<span>${tr("Дөрес җавап", "Правильный ответ")}: ${escapeHtml(correct.text)}</span></div>`;
+    }).join("") : `<p class="perfect">${tr("Барлык җаваплар да дөрес. Афәрин!", "Все ответы верны. Отлично!")}</p>`;
 
     let message = "Теманы тагын бер кабатларга киңәш итәбез.";
     if (percent >= 90) message = "Бик яхшы нәтиҗә. Белемнәрегез нык!";
     else if (percent >= 70) message = "Яхшы нәтиҗә. Хаталарны карап чыгыгыз.";
+    message = tr(message, percent >= 90 ? "Отличный результат. Вы хорошо усвоили материал!" : percent >= 70 ? "Хороший результат. Посмотрите, где были ошибки." : "Советуем ещё раз повторить тему.");
 
     app.innerHTML = `
       <section class="result-card">
         <div class="result-top">
           <div class="score-ring" style="--score:${percent * 3.6}deg"><strong>${percent}%</strong></div>
           <div>
-            <p class="eyebrow">Тест тәмамланды</p>
-            <h2>${score} / ${total} дөрес</h2>
+            <p class="eyebrow">${tr("Тест тәмамланды", "Тест завершён")}</p>
+            <h2>${tr(`${score} / ${total} дөрес`, `${score} из ${total} верно`)}</h2>
             <p class="result-summary">${message}</p>
           </div>
         </div>
         <div class="result-actions">
-          <button class="secondary" id="homeResult" type="button">${lockedLesson ? "Дәрес башына" : "Башка дәрес"}</button>
-          <button class="primary" id="retryButton" type="button">Тагын бер тапкыр</button>
+          <button class="secondary" id="homeResult" type="button">${lockedLesson ? tr("Дәрес башына", "К началу урока") : "Башка дәрес"}</button>
+          <button class="primary" id="retryButton" type="button">${tr("Тагын бер тапкыр", "Пройти ещё раз")}</button>
         </div>
-        ${lockedLesson ? `<p class="submission-status" id="submissionStatus" aria-live="polite">Нәтиҗә җибәрелә…</p>` : ""}
+        ${lockedLesson ? `<p class="submission-status" id="submissionStatus" aria-live="polite">${submissionMessage()}</p>` : ""}
         <div class="review">
-          <h3>${mistakes.length ? `Хаталар өстендә эш (${mistakes.length})` : "Нәтиҗә"}</h3>
+          <h3>${mistakes.length ? tr(`Хаталар өстендә эш (${mistakes.length})`, `Разбор ошибок (${mistakes.length})`) : tr("Нәтиҗә", "Результат")}</h3>
           <div class="review-list">${review}</div>
         </div>
       </section>`;
 
     document.getElementById("homeResult").addEventListener("click", renderHome);
     document.getElementById("retryButton").addEventListener("click", () => startQuiz(state.lesson.id, state.student));
-    if (lockedLesson && state.student) submitResult(score, total, percent);
+    if (submit && lockedLesson && state.student) submitResult(score, total, percent);
     focusMain();
   }
 
   async function submitResult(score, total, percent) {
-    const status = document.getElementById("submissionStatus");
     if (!resultsEndpoint) {
-      if (status) status.textContent = "Нәтиҗәләрне җибәрү вакытлыча көйләнмәгән.";
+      setSubmissionStatus("unavailable");
       return;
     }
     const payload = {
@@ -407,12 +467,18 @@
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || "request_failed");
-      if (status) status.textContent = "Нәтиҗә укытучыга җибәрелде.";
+      setSubmissionStatus("sent");
     } catch (_) {
-      if (status) status.textContent = "Нәтиҗәне җибәреп булмады. Интернетны тикшереп, кабатлап карагыз.";
+      setSubmissionStatus("failed");
     }
   }
 
+  if (languageSwitch) {
+    languageSwitch.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => switchLanguage(button.dataset.lang));
+    });
+  }
+  refreshLanguageSwitch();
   homeButton.addEventListener("click", () => {
     if (lockedLesson) window.location.href = lessonUrl(0);
     else renderHome();
