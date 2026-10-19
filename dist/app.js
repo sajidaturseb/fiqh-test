@@ -3,7 +3,7 @@
 
   const data = window.FIQH_QUIZ_DATA;
   const course = window.FIQH_COURSE || { modules: [], lessonPages: {} };
-  const russian = window.FIQH_RU_DATA || { module: null, lessons: [] };
+  const russian = window.FIQH_RU_DATA || { modules: [], lessons: [] };
   const app = document.getElementById("app");
   const homeButton = document.getElementById("homeButton");
   const bestScore = document.getElementById("bestScore");
@@ -108,6 +108,11 @@
     return course.modules.find((module) => module.lessonIds.includes(lessonId));
   }
 
+  function russianModuleForLesson(lessonId) {
+    const original = getModuleForLesson(lessonId);
+    return russian.modules.find((module) => original && module.id === original.id) || original;
+  }
+
   function bookPages(lessonId) {
     return course.lessonPages[lessonId] || "";
   }
@@ -184,19 +189,25 @@
     const lesson = lockedLesson;
     const shownLesson = localizedLesson(lesson);
     const module = getModuleForLesson(lesson.id);
+    const russianModule = russianModuleForLesson(lesson.id);
     const pages = bookPages(lesson.id);
     const pageWord = /[-,]/.test(pages) ? "битләрен" : "битен";
     const isAssessment = lesson.id === 25 || lesson.id === 49 || lesson.id === 50;
-    const readingTaskTatar = isAssessment
-      ? "Тәһарәт, намаз, ураза, зәкят һәм хаҗ бүлекләрен кабатлагыз."
-      : `«${course.bookTitle || "Фикһ китабы"}»ның ${pages} нче ${pageWord} укыгыз.`;
-    const readingTask = tr(readingTaskTatar, `Прочитайте страницы ${pages} русского учебника «Азбука фикха».`);
-    const practice = tr(module ? module.practice : "Үткән бүлекләрне кабатлагыз.", russian.module.practice);
+    const readingTaskTatar = lesson.id === 25
+      ? "Тәһарәт, намаз һәм ураза бүлекләрен кабатлагыз."
+      : isAssessment
+        ? "Тәһарәт, намаз, ураза, зәкят һәм хаҗ бүлекләрен кабатлагыз."
+        : `«${course.bookTitle || "Фикһ китабы"}»ның ${pages} нче ${pageWord} укыгыз.`;
+    const readingTaskRussian = lesson.id === 25
+      ? "Повторите разделы очищения, намаза и поста, изученные на первом курсе."
+      : `Прочитайте страницы ${pages} русского учебника «Азбука фикха».`;
+    const readingTask = tr(readingTaskTatar, readingTaskRussian);
+    const practice = tr(module ? module.practice : "Үткән бүлекләрне кабатлагыз.", russianModule ? russianModule.practice : "Повторите изученный материал.");
     app.innerHTML = `
       <section class="lesson-workspace">
         <div class="lesson-study">
           <nav class="lesson-breadcrumb" aria-label="${tr("Курс юлы", "Разделы курса")}">
-            <a href="${escapeHtml(lessonUrl(0))}">${tr("Курс", "Курс")}</a><span>•</span><span>${escapeHtml(tr(module ? module.title : "Йомгаклау", russian.module.title))}</span>
+            <a href="${escapeHtml(lessonUrl(0))}">${tr("Курс", "Курс")}</a><span>•</span><span>${escapeHtml(tr(module ? module.title : "Йомгаклау", russianModule ? russianModule.title : "Повторение"))}</span>
           </nav>
           <p class="eyebrow">${tr(`${lesson.id} нче дәрес`, `Урок ${lesson.id}`)}</p>
           <h1>${escapeHtml(shownLesson.title)}</h1>
