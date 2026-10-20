@@ -200,7 +200,9 @@
         : `«${course.bookTitle || "Фикһ китабы"}»ның ${pages} нче ${pageWord} укыгыз.`;
     const readingTaskRussian = lesson.id === 25
       ? "Повторите разделы очищения, намаза и поста, изученные на первом курсе."
-      : `Прочитайте страницы ${pages} русского учебника «Азбука фикха».`;
+      : isAssessment
+        ? "Повторите разделы очищения, намаза, поста, закята и хаджа."
+        : `Прочитайте страницы ${pages} русского учебника «Азбука фикха».`;
     const readingTask = tr(readingTaskTatar, readingTaskRussian);
     const practice = tr(module ? module.practice : "Үткән бүлекләрне кабатлагыз.", russianModule ? russianModule.practice : "Повторите изученный материал.");
     app.innerHTML = `
