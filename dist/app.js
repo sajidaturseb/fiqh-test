@@ -19,7 +19,13 @@
     { heading: "Онлайн 1 курс", prefix: "Онлайн 1 курс", count: 10 },
     { heading: "Онлайн 2 курс", prefix: "Онлайн 2 курс", count: 10 }
   ];
-  const allowedGroups = new Set(groupSections.flatMap((section) =>
+  // The new online cohort uses its own entrance page, so its 29 groups do not
+  // lengthen the ordinary lesson form's group selector.
+  const portalGroupSections = [
+    { prefix: "Онлайн 1 курс, татар", count: 24 },
+    { prefix: "Онлайн 1 курс, рус", count: 5 }
+  ];
+  const allowedGroups = new Set([...groupSections, ...portalGroupSections].flatMap((section) =>
     Array.from({ length: section.count }, (_, index) => `${section.prefix} — ${index + 1} группа`)));
   const requestedGroup = new URLSearchParams(window.location.search).get("group") || "";
   const assignedGroup = allowedGroups.has(requestedGroup) ? requestedGroup : "";
@@ -145,7 +151,7 @@
     url.search = "";
     url.hash = "";
     if (lessonId) url.searchParams.set("lesson", lessonId);
-    if (group) url.searchParams.set("group", group);
+    if (group || assignedGroup) url.searchParams.set("group", group || assignedGroup);
     return url.toString();
   }
 
@@ -265,14 +271,19 @@
       renderLockedHome();
       return;
     }
-    const lessons = data.lessons.map((lesson) => {
+    const onlineFirstCourse = assignedGroup.startsWith("Онлайн 1 курс, ");
+    const visibleLessons = onlineFirstCourse ? data.lessons.filter((lesson) => lesson.id <= 25) : data.lessons;
+    const visibleModules = onlineFirstCourse
+      ? course.modules.map((module) => ({...module, lessonIds: module.lessonIds.filter((id) => id <= 25)})).filter((module) => module.lessonIds.length)
+      : course.modules;
+    const lessons = visibleLessons.map((lesson) => {
       return `<option value="${lesson.id}">${escapeHtml(lessonLabel(lesson))}</option>`;
     }).join("");
     const completed = getCompleted();
-    const completedCount = Object.keys(completed).filter((lessonId) => completed[lessonId] >= 70 && data.lessons.some((lesson) => lesson.id === Number(lessonId))).length;
-    const progress = Math.round((completedCount / data.lessons.length) * 100);
-    const nextLesson = data.lessons.find((lesson) => completed[lesson.id] < 70 || completed[lesson.id] === undefined) || data.lessons[0];
-    const modules = course.modules.map((module, index) => {
+    const completedCount = visibleLessons.filter((lesson) => completed[lesson.id] >= 70).length;
+    const progress = Math.round((completedCount / visibleLessons.length) * 100);
+    const nextLesson = visibleLessons.find((lesson) => completed[lesson.id] < 70 || completed[lesson.id] === undefined) || visibleLessons[0];
+    const modules = visibleModules.map((module, index) => {
       const done = module.lessonIds.filter((lessonId) => completed[lessonId] >= 70).length;
       return `<details class="course-module" ${index === 0 ? "open" : ""}>
         <summary>
@@ -290,11 +301,11 @@
           <div>
             <p class="eyebrow">«Фикһ китабы» буенча онлайн курс</p>
             <h1>Фикһ курсы</h1>
-            <p class="lead">50 дәрес. Һәр дәрестә «Фикһ китабы»ның битләре һәм тест күрсәтелгән.</p>
+            <p class="lead">${visibleLessons.length} дәрес. Һәр дәрестә «Фикһ китабы»ның битләре һәм тест күрсәтелгән.</p>
           </div>
           <aside class="progress-card">
             <span class="progress-label">Сезнең алга китеш</span>
-            <strong>${completedCount} / ${data.lessons.length}</strong>
+            <strong>${completedCount} / ${visibleLessons.length}</strong>
             <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><div class="progress-bar" style="width:${progress}%"></div></div>
             <p>${progress}% тәмамланган</p>
             <a class="primary button-link" href="${escapeHtml(lessonUrl(nextLesson.id))}">${completedCount ? "Дәвам итәргә" : "Беренче дәресне ачарга"}</a>
@@ -303,12 +314,12 @@
         <div class="course-layout">
           <div class="curriculum">
             <div class="section-heading">
-              <div><p class="eyebrow">Уку юлы</p><h2>7 бүлек • 50 дәрес</h2></div>
+              <div><p class="eyebrow">Уку юлы</p><h2>${visibleModules.length} бүлек • ${visibleLessons.length} дәрес</h2></div>
               <p>«Фикһ китабы»ның күрсәтелгән битләрен укыгыз, аннары тестны үтәгез.</p>
             </div>
             <div class="module-list">${modules}</div>
           </div>
-          <aside class="panel quick-panel">
+          <aside class="panel quick-panel" ${assignedGroup.startsWith("Онлайн 1 курс, ") ? 'hidden style="display:none"' : ""}>
             <p class="eyebrow">Укытучы өчен</p>
             <h2>Дәрес сылтамасы</h2>
             <p class="panel-note">Выберите урок и группу, затем отправьте готовую ссылку ученику.</p>
