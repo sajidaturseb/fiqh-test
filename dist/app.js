@@ -14,19 +14,18 @@
   let language = hasRussian && new URLSearchParams(window.location.search).get("lang") === "ru" ? "ru" : "tt";
   let currentScreen = "home";
   const groupSections = [
-    { heading: "1 курс", prefix: "1 курс", count: 8 },
+    { heading: "1 курс", prefix: "1 курс", count: 7 },
     { heading: "2 курс", prefix: "2 курс", count: 8 },
     { heading: "Онлайн 1 курс", prefix: "Онлайн 1 курс", count: 10 },
     { heading: "Онлайн 2 курс", prefix: "Онлайн 2 курс", count: 10 }
   ];
-  // The new online cohort uses its own entrance page, so its 29 groups do not
-  // lengthen the ordinary lesson form's group selector.
+  const teacherGroup = "Мөгаллимәләр";
   const portalGroupSections = [
     { prefix: "Онлайн 1 курс, татар", count: 24 },
     { prefix: "Онлайн 1 курс, рус", count: 5 }
   ];
-  const allowedGroups = new Set([...groupSections, ...portalGroupSections].flatMap((section) =>
-    Array.from({ length: section.count }, (_, index) => `${section.prefix} — ${index + 1} группа`)));
+  const allowedGroups = new Set([teacherGroup, ...[...groupSections, ...portalGroupSections].flatMap((section) =>
+    Array.from({ length: section.count }, (_, index) => `${section.prefix} — ${index + 1} группа`))]);
   const requestedGroup = new URLSearchParams(window.location.search).get("group") || "";
   const assignedGroup = allowedGroups.has(requestedGroup) ? requestedGroup : "";
   const resultsEndpoint = window.FIQH_RESULTS_ENDPOINT || "";
@@ -91,7 +90,61 @@
       `<optgroup label="${escapeHtml(section.heading)}">${Array.from({ length: section.count }, (_, index) => {
         const label = `${section.prefix} — ${index + 1} группа`;
         return `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`;
-      }).join("")}</optgroup>`).join("");
+      }).join("")}</optgroup>`).join("") + `<option value="${teacherGroup}">${teacherGroup}</option>`;
+  }
+
+  function firstCourseGroupFields() {
+    return `<div class="student-group-picker">
+      <label for="studyPlace">${tr("Кайсы төркемдә укыйсыз?", "Где вы учитесь?")}</label>
+      <select id="studyPlace" required>
+        <option value="">${tr("Сайлагыз", "Выберите")}</option>
+        <option value="mosque">${tr("Мәчет төркеме", "Группа мечети")}</option>
+        <option value="online">${tr("Онлайн төркем", "Онлайн-группа")}</option>
+      </select>
+      <div id="onlineLanguageField" hidden>
+        <label for="onlineLanguage">${tr("Уку теле", "Язык группы")}</label>
+        <select id="onlineLanguage">
+          <option value="">${tr("Телне сайлагыз", "Выберите язык")}</option>
+          <option value="татар">Татарча</option>
+          <option value="рус">Русский</option>
+        </select>
+      </div>
+      <div id="studentGroupField" hidden>
+        <label for="studentGroup">${tr("Төркем", "Группа")}</label>
+        <select id="studentGroup" name="studentGroup" required disabled>
+          <option value="">${tr("Төркемне сайлагыз", "Выберите группу")}</option>
+        </select>
+      </div>
+    </div>`;
+  }
+
+  function setupFirstCourseGroupFields() {
+    const place = document.getElementById("studyPlace");
+    if (!place) return;
+    const languageField = document.getElementById("onlineLanguageField");
+    const language = document.getElementById("onlineLanguage");
+    const groupField = document.getElementById("studentGroupField");
+    const group = document.getElementById("studentGroup");
+    const placeholder = tr("Төркемне сайлагыз", "Выберите группу");
+    const update = () => {
+      const online = place.value === "online";
+      languageField.hidden = !online;
+      language.required = online;
+      if (!online) language.value = "";
+      const ready = place.value === "mosque" || (online && Boolean(language.value));
+      groupField.hidden = !ready;
+      group.disabled = !ready;
+      const values = place.value === "mosque"
+        ? [...Array.from({ length: 7 }, (_, index) => `1 курс — ${index + 1} группа`), teacherGroup]
+        : online && language.value
+          ? Array.from({ length: language.value === "татар" ? 24 : 5 }, (_, index) => `Онлайн 1 курс, ${language.value} — ${index + 1} группа`)
+          : [];
+      group.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>` + values.map((value) =>
+        `<option value="${escapeHtml(value)}">${escapeHtml(value === teacherGroup ? value : value.split(" — ").at(-1))}</option>`).join("");
+    };
+    place.addEventListener("change", update);
+    language.addEventListener("change", update);
+    update();
   }
 
   function getBest() {
@@ -246,7 +299,7 @@
           <form id="studentForm">
             <label for="studentName">${tr("Исем һәм фамилия", "Имя и фамилия")}</label>
             <input id="studentName" name="studentName" maxlength="80" autocomplete="name" required>
-            ${assignedGroup ? `<p class="assigned-group"><span>Группа</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : `<label for="studentGroup">Группа</label><select id="studentGroup" name="studentGroup" required>${groupOptions("Выберите группу")}</select>`}
+            ${assignedGroup ? `<p class="assigned-group"><span>Группа</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : lesson.id <= 25 ? firstCourseGroupFields() : `<label for="studentGroup">Группа</label><select id="studentGroup" name="studentGroup" required>${groupOptions("Выберите группу")}</select>`}
             <label class="book-check"><input id="bookReady" type="checkbox" required><span>${tr("Китаптагы күрсәтелгән битләр белән эшләдем", "Я изучил(а) указанные страницы учебника")}</span></label>
             <p class="privacy-note">Результат, имя и группа отправляются в журнал преподавателя.</p>
             <button class="primary" id="startButton" type="submit">${tr("Тестны башларга", "Начать тест")}</button>
@@ -254,6 +307,7 @@
         </div>
       </section>`;
 
+    setupFirstCourseGroupFields();
     document.getElementById("studentForm").addEventListener("submit", (event) => {
       event.preventDefault();
       const name = document.getElementById("studentName").value.trim();

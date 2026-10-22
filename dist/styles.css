@@ -160,7 +160,9 @@ label[for="studentGroup"], label[for="shareGroup"] { font-size: 1rem; font-weigh
 .share-status { min-height: 22px; margin: 8px 0 -12px; color: var(--good); font-size: .82rem; text-align: center; }
 .lesson-panel { display: flex; flex-direction: column; justify-content: center; }
 .lesson-panel h2 { line-height: 1.4; }
-.lesson-panel input { margin-bottom: 16px; }
+.lesson-panel input { margin-bottom: 8px; }
+.student-group-picker > div:not([hidden]) { margin-top: 12px; }
+.student-group-picker > label { margin-top: 6px; }
 .assigned-group { margin: 2px 0 18px; padding: 12px 14px; border-radius: 12px; background: #eef7f1; }
 .assigned-group span { display: block; color: var(--muted); font-size: .78rem; }
 .assigned-group strong { color: var(--green); }
