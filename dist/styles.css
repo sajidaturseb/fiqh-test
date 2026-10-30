@@ -169,6 +169,8 @@ label[for="studentGroup"], label[for="shareGroup"] { font-size: 1rem; font-weigh
 .privacy-note { margin: 0 0 16px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
 .share-group-label { margin-top: 18px; }
 .submission-status { margin: 16px 0 0; color: var(--green-2); font-size: .88rem; font-weight: 700; text-align: center; }
+.result-send-retry { display: block; width: fit-content; margin: 16px auto 0; }
+.result-send-retry[hidden] { display: none; }
 
 .primary, .secondary {
   min-height: 52px;
@@ -405,3 +407,4 @@ select, input, .primary, .secondary { min-height: 62px; }
 .language-switch button[aria-pressed="true"]{background:#087182;color:#fff}
 .language-switch button:focus-visible{outline:3px solid #e4ad51;outline-offset:2px}
 @media(max-width:650px){.language-switch{order:3;width:100%;justify-content:center}.language-switch button{flex:1}}
+

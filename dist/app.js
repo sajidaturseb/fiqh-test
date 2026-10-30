@@ -30,7 +30,9 @@
   const assignedGroup = allowedGroups.has(requestedGroup) ? requestedGroup : "";
   const resultsEndpoint = window.FIQH_RESULTS_ENDPOINT || "";
   let state = { lesson: null, index: 0, answers: [], student: null, startedAt: null, attemptId: null };
-  let submissionStatusCode = "sending";
+  let submissionStatusCode = "";
+  let submissionPayload = null;
+  let submissionBusy = false;
 
   function tr(tatar, russianText) { return language === "ru" ? russianText : tatar; }
   function localizedLesson(lesson) {
@@ -66,17 +68,21 @@
   }
   function submissionMessage() {
     const messages = {
-      sending: ["Нәтиҗә җибәрелә…", "Результат отправляется…"],
-      sent: ["Нәтиҗә укытучыга җибәрелде.", "Результат отправлен преподавателю."],
-      unavailable: ["Нәтиҗәләрне җибәрү вакытлыча көйләнмәгән.", "Отправка результатов временно не настроена."],
-      failed: ["Нәтиҗәне җибәреп булмады. Интернетны тикшереп, кабатлап карагыз.", "Не удалось отправить результат. Проверьте интернет и попробуйте ещё раз."]
+      sent: ["Эшегез укытучы журналына теркәлде.", "Ваша работа записана в журнале преподавателя."],
+      failed: ["Эшегез журналга теркәлмәде. Кабат җибәрергә кирәк.", "Работа не записана в журнале. Отправьте ещё раз."]
     };
-    return tr(...messages[submissionStatusCode]);
+    return messages[submissionStatusCode] ? tr(...messages[submissionStatusCode]) : "";
   }
   function setSubmissionStatus(code) {
     submissionStatusCode = code;
     const status = document.getElementById("submissionStatus");
     if (status) status.textContent = submissionMessage();
+    const retry = document.getElementById("retrySubmission");
+    if (retry) {
+      retry.hidden = code !== "failed";
+      retry.disabled = submissionBusy;
+      retry.textContent = tr("Кабат җибәрергә", "Отправить ещё раз");
+    }
   }
 
   function escapeHtml(value) {
@@ -401,7 +407,9 @@
   }
 
   function startQuiz(lessonId, student) {
-    submissionStatusCode = "sending";
+    submissionStatusCode = "";
+    submissionPayload = null;
+    submissionBusy = false;
     state = {
       lesson: data.lessons.find((item) => item.id === lessonId),
       index: 0,
@@ -502,7 +510,7 @@
           <button class="secondary" id="homeResult" type="button">${lockedLesson ? tr("Дәрес башына", "К началу урока") : "Башка дәрес"}</button>
           <button class="primary" id="retryButton" type="button">${tr("Тагын бер тапкыр", "Пройти ещё раз")}</button>
         </div>
-        ${lockedLesson ? `<p class="submission-status" id="submissionStatus" aria-live="polite">${submissionMessage()}</p>` : ""}
+        ${lockedLesson ? `<p class="submission-status" id="submissionStatus" role="status" aria-live="polite">${submissionMessage()}</p><button class="primary result-send-retry" id="retrySubmission" type="button" ${submissionStatusCode === "failed" ? "" : "hidden"}>${tr("Кабат җибәрергә", "Отправить ещё раз")}</button>` : ""}
         <div class="review">
           <h3>${mistakes.length ? tr(`Хаталар өстендә эш (${mistakes.length})`, `Разбор ошибок (${mistakes.length})`) : tr("Нәтиҗә", "Результат")}</h3>
           <div class="review-list">${review}</div>
@@ -511,16 +519,13 @@
 
     document.getElementById("homeResult").addEventListener("click", renderHome);
     document.getElementById("retryButton").addEventListener("click", () => startQuiz(state.lesson.id, state.student));
+    if (lockedLesson) document.getElementById("retrySubmission").addEventListener("click", sendSubmission);
     if (submit && lockedLesson && state.student) submitResult(score, total, percent);
     focusMain();
   }
 
   async function submitResult(score, total, percent) {
-    if (!resultsEndpoint) {
-      setSubmissionStatus("unavailable");
-      return;
-    }
-    const payload = {
+    submissionPayload = {
       studentName: state.student.name,
       group: state.student.group,
       lessonId: state.lesson.id,
@@ -537,17 +542,33 @@
         isCorrect: state.answers[index] === question.answer
       }))
     };
+    sendSubmission();
+  }
+
+  async function sendSubmission() {
+    if (submissionBusy || !submissionPayload) return;
+    const payload = submissionPayload;
+    submissionBusy = true;
+    setSubmissionStatus("");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
+      if (!resultsEndpoint) throw new Error("endpoint_unavailable");
       const response = await fetch(resultsEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.error || "request_failed");
-      setSubmissionStatus("sent");
+      if (submissionPayload === payload) setSubmissionStatus("sent");
     } catch (_) {
-      setSubmissionStatus("failed");
+      if (submissionPayload === payload) setSubmissionStatus("failed");
+    } finally {
+      clearTimeout(timer);
+      submissionBusy = false;
+      if (submissionPayload === payload) setSubmissionStatus(submissionStatusCode);
     }
   }
 
@@ -564,3 +585,4 @@
   renderBest();
   renderHome();
 })();
+
