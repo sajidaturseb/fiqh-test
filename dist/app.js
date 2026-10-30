@@ -26,8 +26,14 @@
   ];
   const allowedGroups = new Set([teacherGroup, ...[...groupSections, ...portalGroupSections].flatMap((section) =>
     Array.from({ length: section.count }, (_, index) => `${section.prefix} — ${index + 1} группа`))]);
+  function groupMatchesLesson(group, lessonId) {
+    if (group === teacherGroup || !lessonId) return true;
+    const firstCourse = /^(?:Онлайн )?1 курс(?:,| —)/.test(group);
+    const secondCourse = /^(?:Онлайн )?2 курс(?:,| —)/.test(group);
+    return lessonId <= 25 ? !secondCourse : !firstCourse;
+  }
   const requestedGroup = new URLSearchParams(window.location.search).get("group") || "";
-  const assignedGroup = allowedGroups.has(requestedGroup) ? requestedGroup : "";
+  const assignedGroup = allowedGroups.has(requestedGroup) && groupMatchesLesson(requestedGroup, requestedLessonId) ? requestedGroup : "";
   const resultsEndpoint = window.FIQH_RESULTS_ENDPOINT || "";
   let state = { lesson: null, index: 0, answers: [], student: null, startedAt: null, attemptId: null };
   let submissionStatusCode = "";
@@ -91,8 +97,9 @@
     })[char]);
   }
 
-  function groupOptions(placeholder) {
-    return `<option value="" selected>${placeholder}</option>` + groupSections.map((section) =>
+  function groupOptions(placeholder, lessonId = 0) {
+    return `<option value="" selected>${placeholder}</option>` + groupSections.filter((section) =>
+      groupMatchesLesson(`${section.prefix} — 1 группа`, lessonId)).map((section) =>
       `<optgroup label="${escapeHtml(section.heading)}">${Array.from({ length: section.count }, (_, index) => {
         const label = `${section.prefix} — ${index + 1} группа`;
         return `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`;
@@ -305,7 +312,7 @@
           <form id="studentForm">
             <label for="studentName">${tr("Исем һәм фамилия", "Имя и фамилия")}</label>
             <input id="studentName" name="studentName" maxlength="80" autocomplete="name" required>
-            ${assignedGroup ? `<p class="assigned-group"><span>Группа</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : lesson.id <= 25 ? firstCourseGroupFields() : `<label for="studentGroup">Группа</label><select id="studentGroup" name="studentGroup" required>${groupOptions("Выберите группу")}</select>`}
+            ${assignedGroup ? `<p class="assigned-group"><span>Группа</span><strong>${escapeHtml(assignedGroup)}</strong></p>` : lesson.id <= 25 ? firstCourseGroupFields() : `<label for="studentGroup">Группа</label><select id="studentGroup" name="studentGroup" required>${groupOptions("Выберите группу", lesson.id)}</select>`}
             <label class="book-check"><input id="bookReady" type="checkbox" required><span>${tr("Китаптагы күрсәтелгән битләр белән эшләдем", "Я изучил(а) указанные страницы учебника")}</span></label>
             <p class="privacy-note">Результат, имя и группа отправляются в журнал преподавателя.</p>
             <button class="primary" id="startButton" type="submit">${tr("Тестны башларга", "Начать тест")}</button>
@@ -319,7 +326,7 @@
       const name = document.getElementById("studentName").value.trim();
       const groupInput = document.getElementById("studentGroup");
       const group = assignedGroup || (groupInput ? groupInput.value : "");
-      if (!name || !allowedGroups.has(group)) return;
+      if (!name || !allowedGroups.has(group) || !groupMatchesLesson(group, lesson.id)) return;
       startQuiz(lesson.id, { name, group });
     });
     focusMain();
