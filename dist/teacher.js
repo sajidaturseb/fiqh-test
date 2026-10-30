@@ -49,17 +49,39 @@
     return `<option value="">${label}</option>${values.map((value) => `<option>${escapeHtml(value)}</option>`).join("")}`;
   }
 
-  function fillFilters() {
+  function lessonRange(group) {
+    if (/^(?:Онлайн )?1 курс(?:,| —)/.test(group)) return [1, 25];
+    if (/^(?:Онлайн )?2 курс(?:,| —)/.test(group)) return [26, 50];
+    return null;
+  }
+
+  function fillFilters(preserve = false) {
+    const selectedGroup = preserve ? $("groupFilter").value : "";
+    const selectedLesson = preserve ? $("lessonFilter").value : "";
+    const selectedStudent = preserve ? $("studentFilter").value : "";
     $("groupFilter").innerHTML = options(unique("group"), "Все группы");
-    $("lessonFilter").innerHTML = options(unique("lessonId"), "Барлык дәресләр");
-    $("studentFilter").innerHTML = options(unique("studentName"), "Барлык укучылар");
+    $("groupFilter").value = selectedGroup;
+    const group = $("groupFilter").value;
+    const range = lessonRange(group);
+    const lessons = range
+      ? Array.from({ length: range[1] - range[0] + 1 }, (_, index) => range[0] + index)
+      : unique("lessonId").sort((a, b) => Number(a) - Number(b));
+    $("lessonFilter").innerHTML = options(lessons, "Барлык дәресләр");
+    $("lessonFilter").value = selectedLesson;
+    const students = [...new Set(all.filter((item) => (!group || item.group === group)
+      && (!range || (item.lessonId >= range[0] && item.lessonId <= range[1])))
+      .map((item) => item.studentName).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tt"));
+    $("studentFilter").innerHTML = options(students, "Барлык укучылар");
+    $("studentFilter").value = selectedStudent;
   }
 
   function filtered() {
     const group = $("groupFilter").value;
     const lesson = $("lessonFilter").value;
     const student = $("studentFilter").value;
+    const range = lessonRange(group);
     return all.filter((item) => (!group || item.group === group)
+      && (!range || (item.lessonId >= range[0] && item.lessonId <= range[1]))
       && (!lesson || String(item.lessonId) === lesson)
       && (!student || item.studentName === student));
   }
@@ -121,7 +143,7 @@
     button.disabled = true;
     try {
       all = await loadResults();
-      fillFilters();
+      fillFilters(true);
       render();
     } finally {
       button.disabled = false;
@@ -142,5 +164,6 @@
   $("loginForm").addEventListener("submit", login);
   $("refreshButton").addEventListener("click", refresh);
   $("exportButton").addEventListener("click", exportCsv);
-  ["groupFilter", "lessonFilter", "studentFilter"].forEach((id) => $(id).addEventListener("change", render));
+  $("groupFilter").addEventListener("change", () => { fillFilters(true); render(); });
+  ["lessonFilter", "studentFilter"].forEach((id) => $(id).addEventListener("change", render));
 })();
