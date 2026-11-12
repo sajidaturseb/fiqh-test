@@ -16,8 +16,8 @@
   const groupSections = [
     { heading: "1 курс", prefix: "1 курс", count: 7 },
     { heading: "2 курс", prefix: "2 курс", count: 8 },
-    { heading: "Онлайн 1 курс", prefix: "Онлайн 1 курс", count: 10 },
-    { heading: "Онлайн 2 курс", prefix: "Онлайн 2 курс", count: 10 }
+
+
   ];
   const teacherGroup = "Мөгаллимәләр";
   const portalGroupSections = [
