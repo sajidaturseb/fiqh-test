@@ -15,9 +15,7 @@
   let currentScreen = "home";
   const groupSections = [
     { heading: "1 курс", prefix: "1 курс", count: 7 },
-    { heading: "2 курс", prefix: "2 курс", count: 8 },
-
-
+    { heading: "2 курс", prefix: "2 курс", count: 8 }
   ];
   const teacherGroup = "Мөгаллимәләр";
   const portalGroupSections = [
@@ -277,15 +275,17 @@
         : `Прочитайте страницы ${pages} русского учебника «Азбука фикха».`;
     const readingTask = tr(readingTaskTatar, readingTaskRussian);
     const practice = tr(module ? module.practice : "Үткән бүлекләрне кабатлагыз.", russianModule ? russianModule.practice : "Повторите изученный материал.");
+    const lessonMaterial = window.renderFiqhLessonMaterial ? window.renderFiqhLessonMaterial(lesson.id, language) : "";
     app.innerHTML = `
-      <section class="lesson-workspace">
+      <section class="lesson-workspace${lessonMaterial ? " fiqh-reading-workspace" : ""}">
         <div class="lesson-study">
+          ${lessonMaterial ? `<div class="fiqh-lesson-hero">` : ""}
           <nav class="lesson-breadcrumb" aria-label="${tr("Курс юлы", "Разделы курса")}">
             <a href="${escapeHtml(lessonUrl(0))}">${tr("Курс", "Курс")}</a><span>•</span><span>${escapeHtml(tr(module ? module.title : "Йомгаклау", russianModule ? russianModule.title : "Повторение"))}</span>
           </nav>
           <p class="eyebrow">${tr(`${lesson.id} нче дәрес`, `Урок ${lesson.id}`)}</p>
           <h1>${escapeHtml(shownLesson.title)}</h1>
-          <p class="lead">${tr(`Дәреснең темасы «${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләренә нигезләнгән.`, "Тема урока основана на указанных страницах учебника по фикху.")}</p>
+          ${lessonMaterial ? `</div>${lessonMaterial}` : `<p class="lead">${tr(`Дәреснең темасы «${escapeHtml(course.bookTitle || "Фикһ китабы")}»ның күрсәтелгән битләренә нигезләнгән.`, "Тема урока основана на указанных страницах учебника по фикху.")}</p>
           <div class="study-steps">
             <article class="study-step">
               <span>1</span>
@@ -303,7 +303,7 @@
               <span>4</span>
               <div><h2>Тест</h2><p>${tr(`${lesson.questions.length} сорауга җавап бирегез.`, `Ответьте на ${lesson.questions.length} вопросов.`)}</p></div>
             </article>
-          </div>
+          </div>`}
         </div>
         <div class="panel lesson-panel">
           <p class="eyebrow">${tr("Дәрес тесты", "Тест урока")}</p>
