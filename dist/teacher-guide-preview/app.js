@@ -3,7 +3,7 @@
   const lang=new URLSearchParams(location.search).get('lang')==='tt'?'tt':'ru';
   const d=GUIDE[lang], H=d.home, I=d.intro, L=d.lesson;
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const href=(file,l=lang)=>`${file}?lang=${l}`;
+  const href=(file,l=lang)=>`${file}?lang=${l}&v=20261127f`;
   const link=(file,text,cls='button')=>`<a class="${cls}" href="${href(file)}">${esc(text)}</a>`;
   const item=(x)=>`<article class="step"><div><h3>${esc(x[0])}</h3><p>${esc(x[1])}</p>${x[2]?`<p class="quote">${esc(x[2])}</p>`:''}</div></article>`;
   function head(){return `<a class="skip" href="#main">${lang==='ru'?'К содержанию':'Эчтәлеккә'}</a><header class="site-head"><div class="shell head-inner"><a class="brand" href="${href('index.html')}"><span class="brand-mark" aria-hidden="true">✦</span><span>${esc(d.name)}</span></a><div class="langs" aria-label="Язык / Тел"><a href="${href(page==='home'?'index.html':page==='intro'?'intro.html':'lesson01.html','ru')}" ${lang==='ru'?'aria-current="true"':''}>Русский</a><a href="${href(page==='home'?'index.html':page==='intro'?'intro.html':'lesson01.html','tt')}" ${lang==='tt'?'aria-current="true"':''}>Татарча</a></div></div></header>`}
